@@ -63,13 +63,13 @@ def get_vectorstore(excel_text_chunks):
     vectorstore = FAISS.from_texts(texts=excel_text_chunks, embedding=embeddings)
     return vectorstore
 
-# 3) get_conversation_chain 메소드 (핵심 로직, gpt-4 사용)
+# 3) get_conversation_chain 메소드 (핵심 로직, gpt-4o 사용)
 # 설명 : 사용자와 gpt 챗봇 간의 ConversationalRetrievalChain 을 생성함
 #       이 대화체인을 통해, 사용자의 질문에 대한 적절한 응답을 생성하기 위해 언어모델, 메모리, 벡터 검색기를 사용함
 # 참고 : Retriever는 사용자의 질문이나 주제에 대해 미리 학습된 데이터에서 가장 관련이 있는 정보를 찾아주는 역할을 함. 이걸 쓰기 위해서 벡터db에 저장해야 함
 def get_conversation_chain(vectorstore):
     callbacks = [StreamingStdOutCallbackHandler()]
-    llm = ChatOpenAI(model="gpt-4", openai_api_key=os.environ["OPENAI_API_KEY"], streaming=True, callbacks=callbacks)
+    llm = ChatOpenAI(model="gpt-4o", openai_api_key=os.environ["OPENAI_API_KEY"], streaming=True, callbacks=callbacks)
     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
