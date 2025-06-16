@@ -30,8 +30,22 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-#st.title("ChatGPT Code Rule Checker (using GPT-4o)") 을 써도 되지만, Css 사용을 위해 markdown을 주입 함
-st.markdown("<h1 style='text-align: center; color: black;'>ChatGPT Code Rule Checker (using GPT-4o)</h1>", unsafe_allow_html=True)
+# Final Project 머릿말 (왼쪽 상단)
+st.markdown(
+    "<div style='position: absolute; top: 20px; right: 20px; font-size: 14px; color: gray;'>"
+    "<b>Final Project — <i>Understanding and Application of Foundation Models</i></b><br>"
+    "</div>",
+    unsafe_allow_html=True
+)
+st.text("\n")
+
+# Title - Sub Title
+st.markdown("<h1 style='text-align: center; color: black; padding-top: 40px;'>ChatGPT Code Rule Checker (using GPT-4o)</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<h5 style='text-align: center; color: gray;'>Master of Computer Software Engineering, Yonsei University</h5>"
+    "<h5 style='text-align: center; color: gray;'>Taesu Kim (2024451104)</h5>",
+    unsafe_allow_html=True
+)
 
 st.text("\n")
 st.text("\n")
