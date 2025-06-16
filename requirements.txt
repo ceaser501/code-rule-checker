@@ -2,3 +2,5 @@ streamlit
 openai
 langchain
 openpyxl
+pandas
+langchain-community
