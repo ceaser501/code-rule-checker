@@ -30,8 +30,8 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-#st.title("한화생명 ChatGPT CPSP 검사기") 을 써도 되지만, Css 사용을 위해 markdown을 주입 함
-st.markdown("<h1 style='text-align: center; color: black;'>한화생명 ChatGPT CPSP 검사기</h1>", unsafe_allow_html=True)
+#st.title("ChatGPT Code Rule Checker (using GPT-4o)") 을 써도 되지만, Css 사용을 위해 markdown을 주입 함
+st.markdown("<h1 style='text-align: center; color: black;'>ChatGPT Code Rule Checker (using GPT-4o)</h1>", unsafe_allow_html=True)
 
 st.text("\n")
 st.text("\n")
@@ -41,7 +41,7 @@ col1, col2 = st.columns(2)
 
 # Use the columns like normal st calls
 col1.subheader("[ 데이터 입력 ]")
-col1.markdown("##### 1. CPSP 검사를 위한 한화생명 룰셋을 업로드하세요. (샘플 : java)")
+col1.markdown("##### 1. 작성한 소스코드 검사를 위한 룰셋을 업로드하세요. (샘플 : java)")
 
 # 1) get_excel_chunks 메소드
 # 설명 : to_string으로 변환된 엑셀 데이터를 chunks 로 쪼갬
