@@ -83,7 +83,7 @@ def get_vectorstore(excel_text_chunks):
 # 참고 : Retriever는 사용자의 질문이나 주제에 대해 미리 학습된 데이터에서 가장 관련이 있는 정보를 찾아주는 역할을 함. 이걸 쓰기 위해서 벡터db에 저장해야 함
 def get_conversation_chain(vectorstore):
     callbacks = [StreamingStdOutCallbackHandler()]
-    llm = ChatOpenAI(model="gpt-4o", openai_api_key=os.environ["OPENAI_API_KEY"], streaming=True, callbacks=callbacks)
+    llm = ChatOpenAI(model="gpt-4o", openai_api_key=os.environ["OPENAI_API_KEY"], temperature=0, streaming=True, callbacks=callbacks)
     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
