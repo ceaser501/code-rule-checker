@@ -1,6 +1,8 @@
 streamlit
 openai
-langchain
-openpyxl
 pandas
+langchain
 langchain-community
+tiktoken
+faiss-cpu
+openpyxl
