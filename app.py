@@ -209,7 +209,7 @@ if col1.button("검사시작", key="button"):
             send_to_slack(slack_message)
 
             if streamlit_only_output:
-                col2.markdown(f"<pre><code>{streamlit_only_output}</code></pre>", unsafe_allow_html=True)
-
+                col2.markdown(streamlit_only_output, unsafe_allow_html=True)
+                
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
