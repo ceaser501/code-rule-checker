@@ -137,12 +137,12 @@ def handle_userinput(check_datas):
 def extract_slack_message(full_response):
     """
     GPT의 전체 응답에서 Slack 메시지용 포맷만 추출한다.
-    Slack 메시지는 '*✅ 코드 룰셋 검사 결과*'로 시작한다고 가정.
+    Slack 메시지는 '🔎 코드 룰셋 검사 결과' 문자열이 포함된 첫 줄부터 끝까지라고 가정.
     """
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("*✅ 코드 룰셋 검사 결과*"):
+        if line.strip().startswith("*🔎 코드 룰셋 검사 결과*"):
             start_idx = i
             break
     if start_idx is not None:
