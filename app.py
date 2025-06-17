@@ -28,7 +28,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
 # CSS 적용 (버튼에 전체 적용)
 st.markdown("""
     <style>
@@ -150,10 +149,6 @@ def handle_userinput(check_datas):
 
 # Slack 메시지만 따로 뽑기 위한 헬퍼 함수
 def extract_slack_message(full_response):
-    """
-    GPT의 전체 응답에서 Slack 메시지용 포맷만 추출한다.
-    Slack 메시지는 '🔎 **코드 룰셋 검사 결과**' 문자열이 포함된 첫 줄부터 끝까지라고 가정.
-    """
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
@@ -166,8 +161,6 @@ def extract_slack_message(full_response):
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
 # Slack 알림 전송 함수
-# 입력: message (str) - Slack으로 전송할 메시지
-# 비고: Streamlit secrets에 SLACK_WEBHOOK_URL이 등록되어 있어야 함
 def send_to_slack(message):
     webhook_url = st.secrets["SLACK_WEBHOOK_URL"]
     payload = {
@@ -184,19 +177,16 @@ if col1.button("검사시작", key="button"):
         line_all = ''
         lines = check_data.splitlines()
         for line in lines:
-            line_all = line_all + line
-            print('line: '+line_all)
+            line_all += line
 
-        # 별도 질의를 사용자가 입력하지 않기 위함
         with open('prompt/userQuery', 'r') as f:
             lines = f.readlines()
             user_query = " ".join(line.strip() for line in lines)
 
-        check_datas = line_all+ '\n' + user_query
+        check_datas = line_all + '\n' + user_query
         handle_userinput(check_datas)
         st.session_state.previous_question = line_all
 
-        # HTML 태그 제거 및 결과 정리
         clearer = re.compile('<.*?>')
         if 'displayed_chat_history' in st.session_state:
             full_result = []
@@ -204,24 +194,18 @@ if col1.button("검사시작", key="button"):
                 rmT = re.sub(clearer, '', message)
                 full_result.append(rmT)
 
-            # 전체 응답을 합치고
             full_message = "\n\n".join(full_result)
-
-            # Slack 메시지 추출 및 전송
             slack_message = extract_slack_message(full_message)
-            
-            # Streamlit에는 Slack 메시지를 제외한 앞부분만 출력
+
             if slack_message in full_message:
                 streamlit_only_output = full_message.replace(slack_message, "").strip()
             else:
                 streamlit_only_output = full_message.strip()
 
-            # Slack 전송
             send_to_slack(slack_message)
 
-            # Streamlit용 출력은 Slack 메시지를 제외한 나머지만 출력
             if streamlit_only_output:
-                col2.markdown(f"```java\n{streamlit_only_output}\n```")
+                col2.markdown(streamlit_only_output)
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
