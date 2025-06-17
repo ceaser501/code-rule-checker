@@ -194,14 +194,17 @@ if col1.button("검사시작", key="button"):
 
             # Slack 메시지 추출 및 전송
             slack_message = extract_slack_message(full_message)
+            
+            # Streamlit에는 Slack 메시지를 제외한 앞부분만 출력
+            if slack_message in full_message:
+                streamlit_only_output = full_message.replace(slack_message, "").strip()
+            else:
+                streamlit_only_output = full_message.strip()
+
+            # Slack 전송
             send_to_slack(slack_message)
 
             # Streamlit용 출력은 Slack 메시지를 제외한 나머지만 출력
-            streamlit_only_output = "\n".join([
-                line for line in full_message.splitlines()
-                if not line.strip().startswith("*🔎 코드 룰셋 검사 결과*")
-            ])
-            
             if streamlit_only_output:
                 col2.markdown(streamlit_only_output)
 
