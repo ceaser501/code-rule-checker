@@ -197,7 +197,11 @@ if col1.button("검사시작", key="button"):
             send_to_slack(slack_message)
 
             # Streamlit용 출력은 Slack 메시지를 제외한 나머지만 출력
-            streamlit_only_output = full_message.split("*✅ 코드 룰셋 검사 결과*")[0].strip()
+            streamlit_only_output = "\n".join([
+                line for line in full_message.splitlines()
+                if not line.strip().startswith("*🔎 코드 룰셋 검사 결과*")
+            ])
+            
             if streamlit_only_output:
                 col2.markdown(streamlit_only_output)
 
