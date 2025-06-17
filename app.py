@@ -63,7 +63,7 @@ col1.markdown("##### 1. 작성한 소스코드 검사를 위한 룰셋을 업로
 def get_excel_chunks(data_st):
     text_splitter = CharacterTextSplitter(
         separator="\n",
-        chunk_size=300  ,        # 언어모델이 한번에 처리할 수 있는 토큰 수 : 보통 1024, 2048 등으로 처리. 무작정 크게하면 메모리 오버플로우나, 성능 저하 초래 가능성 있음
+        chunk_size=300,
         chunk_overlap=200,
         length_function=len
     )
@@ -74,7 +74,6 @@ def get_excel_chunks(data_st):
 # 설명 : excel chunks를 벡터화해서 FAISS라는 검색 라이브러리에 저장함 (쉽게 말해, 쪼갠 chunks 들을 vector store 에 저장한다고 보면 됌)
 def get_vectorstore(excel_text_chunks):
     embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
-    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
     vectorstore = FAISS.from_texts(texts=excel_text_chunks, embedding=embeddings)
     return vectorstore
 
@@ -88,7 +87,7 @@ def get_conversation_chain(vectorstore):
     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
-        retriever=vectorstore.as_retriever(),       
+        retriever=vectorstore.as_retriever(),
         memory=memory,
     )
     return conversation_chain
@@ -97,33 +96,18 @@ def get_conversation_chain(vectorstore):
 def run():
     uploaded_file = col1.file_uploader("Choose a Excel file", type="xlsx")
     if uploaded_file is not None:
-            # 엑셀 파일을 pandas dataframe으로 변환
-            data = pd.read_excel(uploaded_file)
-            
-            # 데이터 출력
-            with col1.expander("적용된 룰셋을 상세히 보기"):
-                
-                # expander에서 검색어 입력 받기
-                keyword = st.text_input("검색어를 입력하세요")
-
-                if keyword:  # 검색어가 있는 경우
-                    # 데이터프레임에서 검색어를 포함하는 행 필터링
-                    # 아래는 전체 룰셋에서 검색할 때 쓰는 거고, 이번에는 RULE_NAME 에만 적용
-                    # search_result = data[data.apply(lambda row: keyword.lower() in row.astype(str).values, axis=1)]
-                    search_result = data[data['RULE_NAME'].astype(str).str.lower().str.contains(keyword.lower())] # RULE_NAME 에만 적용
-                    st.write(search_result)
-                else:  # 검색어가 없는 경우
-                    st.write(data)        
-
-                # 엑셀데이터를 to_string으로 바꿔서, chunks로 쪼개기 위해 get_excel_chunks 메소드 호출
-                data_st = data.to_string()
-                excel_text_chunks = get_excel_chunks(data_st)
-
-                # chunks 단위로 쪼갠 엑셀데이터를 벡터스토어에 저장
-                vectorstore = get_vectorstore(excel_text_chunks)
-
-                # 저장한 벡터스토어를 기반으로 대화체인(conversation chain)을 생성함
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+        data = pd.read_excel(uploaded_file)
+        with col1.expander("적용된 룰셋을 상세히 보기"):
+            keyword = st.text_input("검색어를 입력하세요")
+            if keyword:
+                search_result = data[data['RULE_NAME'].astype(str).str.lower().str.contains(keyword.lower())]
+                st.write(search_result)
+            else:
+                st.write(data)
+            data_st = data.to_string()
+            excel_text_chunks = get_excel_chunks(data_st)
+            vectorstore = get_vectorstore(excel_text_chunks)
+            st.session_state.conversation = get_conversation_chain(vectorstore)
     else:
         col1.write("파일을 업로드 해주세요.")
 
@@ -136,73 +120,17 @@ col1.text("\n")
 col1.markdown("##### 2. CPSP 검사를 위한 소스코드를 입력하세요.")
 col2.subheader("[ 결과 출력 ]")
 
-# 검사를 위한 소스코드 입력 부분 (사용자 소스코드 입력 영역)
 user_input = col1.text_area("Please enter your text here")
 
-# 5) handle_userinput 메소드
-# 설명 : 사용자가 입력한 소스코드를 라인단위로 읽어 string 연산 한 결과를 가져다가, 위에서 구현한 대화체인에게 질의함
-#       질의한 결과를 st.session_state.displayed_chat_history에 append 함
 def handle_userinput(check_datas):
     response = st.session_state.conversation({'question': check_datas})
     st.session_state.chat_history = response['chat_history']
-    
-    # process 버튼을 누를 때마다 결과출력 부분을 비우기 위함
     st.session_state.displayed_chat_history = []
-
-    # prefix로 지정한 질의는 chat_history에서 짝수 인덱스에 위치하므로, 홀수 인덱스(gpt 응답결과만)만 보여주기 위해 i%2 != 0을 씀
     for i, message in enumerate(st.session_state.chat_history):
         if i % 2 != 0:
             st.session_state.displayed_chat_history.append(message.content)
 
-
-if col1.button("검사시작", key="button"):
-    with st.spinner("검사 중입니다..."):
-        # 사용자가 입력한 input value를 check_data에 세팅
-        check_data = user_input
-        check_datas = ''
-        line_all = ''
-        lines = check_data.splitlines()     # 문자열을 라인별로 나누어 리스트로 반환
-        for line in lines:
-            line_all = line_all + line      # 개선필요) 라인단위로 string 연산
-            print('line: '+line_all)
-
-        # 별도 질의를 사용자가 입력하지 않기 위함
-        with open('prompt/userQuery', 'r') as f:
-            lines = f.readlines()
-            user_query = " ".join(line.strip() for line in lines)
-
-        check_datas = line_all+ '\n' + user_query
-
-        # 사용자가 입력한 코드를 라인단위로 읽어, string 연산을 한 결과를 파라미터로 넘김
-        handle_userinput(check_datas)
-        st.session_state.previous_question = line_all
-
-        clearer = re.compile('<.*?>')
-
-        # st.session_state의 displayed_chat_history에 질의한 결과가 담겨 있으면, clear 한 다음 col2.code에 java lang으로 출력 함
-        if 'displayed_chat_history' in st.session_state:
-            for message in st.session_state.displayed_chat_history:
-                rmT = re.sub(clearer, '', message)
-                #col2.code(rmT, language='java')
-                col2.markdown(rmT)
-                send_to_slack(rmT)
-                
-                # Slack으로 메시지 전송
-                full_message = "\n\n".join(st.session_state.displayed_chat_history)
-                slack_message = extract_slack_message(full_message)
-                send_to_slack(slack_message)
-
-        # 이전 질의에 대한 flush
-        if 'previous_question' not in st.session_state:
-            st.session_state.previous_question = ""
-
-
-# Slack 메시지만 따로 뽑기 위한 헬퍼 함수
 def extract_slack_message(full_response):
-    """
-    GPT의 전체 응답에서 Slack 메시지용 포맷만 추출한다.
-    Slack 메시지는 '*✅ 코드 룰셋 검사 결과*'로 시작한다고 가정.
-    """
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
@@ -225,3 +153,31 @@ def send_to_slack(message):
     response = requests.post(webhook_url, json=payload)
     if response.status_code != 200:
         st.error("Slack 전송 실패: " + response.text)
+
+if col1.button("검사시작", key="button"):
+    with st.spinner("검사 중입니다..."):
+        check_data = user_input
+        check_datas = ''
+        line_all = ''
+        lines = check_data.splitlines()
+        for line in lines:
+            line_all = line_all + line
+            print('line: '+line_all)
+        with open('prompt/userQuery', 'r') as f:
+            lines = f.readlines()
+            user_query = " ".join(line.strip() for line in lines)
+        check_datas = line_all+ '\n' + user_query
+        handle_userinput(check_datas)
+        st.session_state.previous_question = line_all
+        clearer = re.compile('<.*?>')
+        if 'displayed_chat_history' in st.session_state:
+            full_result = []
+            for message in st.session_state.displayed_chat_history:
+                rmT = re.sub(clearer, '', message)
+                col2.markdown(rmT)
+                full_result.append(rmT)
+            full_message = "\n\n".join(full_result)
+            slack_message = extract_slack_message(full_message)
+            send_to_slack(slack_message)
+        if 'previous_question' not in st.session_state:
+            st.session_state.previous_question = ""
