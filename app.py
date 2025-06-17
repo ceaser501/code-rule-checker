@@ -194,8 +194,15 @@ if col1.button("검사시작", key="button"):
                 rmT = re.sub(clearer, '', message)
                 full_result.append(rmT)
 
+            # Slack 메시지 추출
             full_message = "\n\n".join(full_result)
             slack_message = extract_slack_message(full_message)
+
+            # Streamlit 출력에서 Slack 안내 이후 제거
+            if "🔔 Slack 메시지용 응답도 반드시 함께 작성하세요." in full_message:
+                streamlit_only_output = full_message.split("🔔 Slack 메시지용 응답도 반드시 함께 작성하세요.")[0].strip()
+            else:
+                streamlit_only_output = full_message.strip()
 
             if slack_message in full_message:
                 streamlit_only_output = full_message.replace(slack_message, "").strip()
@@ -205,7 +212,7 @@ if col1.button("검사시작", key="button"):
             send_to_slack(slack_message)
 
             if streamlit_only_output:
-                col2.markdown(streamlit_only_output)
+                col2.markdown(streamlit_only_output, unsafe_allow_html=True)
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
