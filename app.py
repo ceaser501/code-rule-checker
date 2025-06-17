@@ -19,17 +19,31 @@ from langchain_community.llms import HuggingFaceHub
 
 # 페이지 레이아웃을 wide로 지정
 st.set_page_config(layout="wide")
+st.markdown("""
+    <style>
+    /* 하단 "Manage app" 링크 밑줄 제거 */
+    a {
+        text-decoration: none !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # CSS 적용 (버튼에 전체 적용)
 st.markdown("""
     <style>
-    .stButton>button {
-        color: white;
-        background-color: #FF6347;
-        float:right;
+    .stButton > button {
+        color: white !important;
+        background-color: #FF6347 !important;
+        float: right;
+        border: none;
+    }
+    .stButton > button:disabled {
+        color: white !important;
+        background-color: #FF6347 !important;
+        opacity: 0.6;
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # Final Project 머릿말 (왼쪽 상단)
 st.markdown(
