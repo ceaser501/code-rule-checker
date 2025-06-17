@@ -3,6 +3,7 @@ import openai
 import pandas as pd
 import os  # 환경변수 사용을 위해 필요
 import sys, re
+import requests
 
 # langchain core
 from langchain.text_splitter import CharacterTextSplitter
@@ -182,8 +183,45 @@ if col1.button("검사시작", key="button"):
         if 'displayed_chat_history' in st.session_state:
             for message in st.session_state.displayed_chat_history:
                 rmT = re.sub(clearer, '', message)
-                col2.code(rmT, language='java')
+                #col2.code(rmT, language='java')
+                col2.markdown(rmT)
+                send_to_slack(rmT)
+                
+                # Slack으로 메시지 전송
+                full_message = "\n\n".join(st.session_state.displayed_chat_history)
+                slack_message = extract_slack_message(full_message)
+                send_to_slack(slack_message)
 
         # 이전 질의에 대한 flush
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
+
+
+# Slack 메시지만 따로 뽑기 위한 헬퍼 함수
+def extract_slack_message(full_response):
+    """
+    GPT의 전체 응답에서 Slack 메시지용 포맷만 추출한다.
+    Slack 메시지는 '*✅ 코드 룰셋 검사 결과*'로 시작한다고 가정.
+    """
+    lines = full_response.splitlines()
+    start_idx = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith("*✅ 코드 룰셋 검사 결과*"):
+            start_idx = i
+            break
+    if start_idx is not None:
+        return "\n".join(lines[start_idx:])
+    else:
+        return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
+
+# Slack 알림 전송 함수
+# 입력: message (str) - Slack으로 전송할 메시지
+# 비고: Streamlit secrets에 SLACK_WEBHOOK_URL이 등록되어 있어야 함
+def send_to_slack(message):
+    webhook_url = st.secrets["SLACK_WEBHOOK_URL"]
+    payload = {
+        "text": f"*✅ Code Rule Check Result*\n\n{message}"
+    }
+    response = requests.post(webhook_url, json=payload)
+    if response.status_code != 200:
+        st.error("Slack 전송 실패: " + response.text)
