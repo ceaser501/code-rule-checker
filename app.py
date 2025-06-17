@@ -28,6 +28,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 # CSS 적용 (버튼에 전체 적용)
 st.markdown("""
     <style>
@@ -134,7 +135,7 @@ col1.text("\n")
 col1.markdown("##### 2. CPSP 검사를 위한 소스코드를 입력하세요.")
 col2.subheader("[ 결과 출력 ]")
 
-user_input = col1.text_area("Please enter your text here")
+user_input = col1.text_area("Please enter your text here", height=300)
 
 # 5) handle_userinput 메소드
 # 설명 : 사용자가 입력한 소스코드를 라인단위로 읽어 string 연산 한 결과를 가져다가, 위에서 구현한 대화체인에게 질의함
@@ -151,12 +152,12 @@ def handle_userinput(check_datas):
 def extract_slack_message(full_response):
     """
     GPT의 전체 응답에서 Slack 메시지용 포맷만 추출한다.
-    Slack 메시지는 '🔎 코드 룰셋 검사 결과' 문자열이 포함된 첫 줄부터 끝까지라고 가정.
+    Slack 메시지는 '🔎 **코드 룰셋 검사 결과**' 문자열이 포함된 첫 줄부터 끝까지라고 가정.
     """
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("*🔎 코드 룰셋 검사 결과*"):
+        if line.strip().startswith("🔎 **코드 룰셋 검사 결과**"):
             start_idx = i
             break
     if start_idx is not None:
@@ -220,7 +221,7 @@ if col1.button("검사시작", key="button"):
 
             # Streamlit용 출력은 Slack 메시지를 제외한 나머지만 출력
             if streamlit_only_output:
-                col2.markdown(streamlit_only_output)
+                col2.markdown(f"```java\n{streamlit_only_output}\n```")
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
