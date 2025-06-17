@@ -122,6 +122,9 @@ col2.subheader("[ 결과 출력 ]")
 
 user_input = col1.text_area("Please enter your text here")
 
+# 5) handle_userinput 메소드
+# 설명 : 사용자가 입력한 소스코드를 라인단위로 읽어 string 연산 한 결과를 가져다가, 위에서 구현한 대화체인에게 질의함
+#       질의한 결과를 st.session_state.displayed_chat_history에 append 함
 def handle_userinput(check_datas):
     response = st.session_state.conversation({'question': check_datas})
     st.session_state.chat_history = response['chat_history']
@@ -130,7 +133,12 @@ def handle_userinput(check_datas):
         if i % 2 != 0:
             st.session_state.displayed_chat_history.append(message.content)
 
+# Slack 메시지만 따로 뽑기 위한 헬퍼 함수
 def extract_slack_message(full_response):
+    """
+    GPT의 전체 응답에서 Slack 메시지용 포맷만 추출한다.
+    Slack 메시지는 '*✅ 코드 룰셋 검사 결과*'로 시작한다고 가정.
+    """
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
@@ -148,7 +156,7 @@ def extract_slack_message(full_response):
 def send_to_slack(message):
     webhook_url = st.secrets["SLACK_WEBHOOK_URL"]
     payload = {
-        "text": f"*✅ Code Rule Check Result*\n\n{message}"
+        "text": f"{message}"
     }
     response = requests.post(webhook_url, json=payload)
     if response.status_code != 200:
@@ -163,21 +171,35 @@ if col1.button("검사시작", key="button"):
         for line in lines:
             line_all = line_all + line
             print('line: '+line_all)
+
+        # 별도 질의를 사용자가 입력하지 않기 위함
         with open('prompt/userQuery', 'r') as f:
             lines = f.readlines()
             user_query = " ".join(line.strip() for line in lines)
+
         check_datas = line_all+ '\n' + user_query
         handle_userinput(check_datas)
         st.session_state.previous_question = line_all
+
+        # HTML 태그 제거 및 결과 정리
         clearer = re.compile('<.*?>')
         if 'displayed_chat_history' in st.session_state:
             full_result = []
             for message in st.session_state.displayed_chat_history:
                 rmT = re.sub(clearer, '', message)
-                col2.markdown(rmT)
                 full_result.append(rmT)
+
+            # 전체 응답을 합치고
             full_message = "\n\n".join(full_result)
+
+            # Slack 메시지 추출 및 전송
             slack_message = extract_slack_message(full_message)
             send_to_slack(slack_message)
+
+            # Streamlit용 출력은 Slack 메시지를 제외한 나머지만 출력
+            streamlit_only_output = full_message.split("*✅ 코드 룰셋 검사 결과*")[0].strip()
+            if streamlit_only_output:
+                col2.markdown(streamlit_only_output)
+
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
