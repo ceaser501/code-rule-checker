@@ -152,7 +152,7 @@ def extract_slack_message(full_response):
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("🔎 **코드 룰셋 검사 결과**"):
+        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"): 
             start_idx = i
             break
     if start_idx is not None:
