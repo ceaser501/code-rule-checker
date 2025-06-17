@@ -134,7 +134,7 @@ col1.text("\n")
 col1.markdown("##### 2. CPSP 검사를 위한 소스코드를 입력하세요.")
 col2.subheader("[ 결과 출력 ]")
 
-user_input = col1.text_area("Please enter your text here", height=300)
+user_input = col1.text_area("Please enter your text here", height=200)
 
 # 5) handle_userinput 메소드
 # 설명 : 사용자가 입력한 소스코드를 라인단위로 읽어 string 연산 한 결과를 가져다가, 위에서 구현한 대화체인에게 질의함
