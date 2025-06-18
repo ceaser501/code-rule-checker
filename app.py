@@ -147,6 +147,16 @@ def handle_userinput(check_datas):
         if i % 2 != 0:
             st.session_state.displayed_chat_history.append(message.content)
 
+# 예약어 강조 제거 함수
+def remove_highlight_from_keywords(text):
+    java_keywords = [
+        'System', 'String', 'Integer', 'Double', 'Boolean', 'List', 'Map', 'HashMap', 'ArrayList',
+        'print', 'println', 'out', 'in', 'Math', 'Arrays'
+    ]
+    for kw in java_keywords:
+        text = re.sub(rf'<mark>{kw}</mark>', kw, text)
+    return text
+
 # Slack 메시지만 따로 뽑기 위한 헬퍼 함수
 def extract_slack_message(full_response):
     lines = full_response.splitlines()
@@ -209,7 +219,8 @@ if col1.button("검사시작", key="button"):
             send_to_slack(slack_message)
 
             if streamlit_only_output:
-                col2.markdown(streamlit_only_output, unsafe_allow_html=True)
+                cleaned_output = remove_highlight_from_keywords(streamlit_only_output)
+                col2.markdown(cleaned_output, unsafe_allow_html=True)
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
