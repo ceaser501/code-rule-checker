@@ -182,35 +182,31 @@ def extract_slack_message(full_response):
         if "❗" in line:
             code_start = i
             break
-        if any(line.strip().startswith(prefix) for prefix in ["|", "----------"]):
-            continue  # 표 테이블 형태는 무시
+        if line.strip().startswith("|") or line.strip().startswith("----------"):
+            continue  # 표 형태 생략
         if line.strip():
             rule_lines.append(line.strip())
 
-    # 리스트 형태로 변환
+    # 리스트 포맷 구성
     formatted_list = []
     for i in range(0, len(rule_lines), 3):
         try:
-            prio_line = rule_lines[i]
-            name_line = rule_lines[i+1]
-            desc_line = rule_lines[i+2]
-
-            # 추출 (가장 보편적인 경우만 대응)
-            prio = re.search(r"\[(.*?)\]", prio_line).group(0)
-            name = re.search(r"\[(.*?)\]", name_line).group(1)
-            desc = desc_line.split(":", 1)[1].strip()
+            prio = re.search(r"$begin:math:display$(.*?)$end:math:display$", rule_lines[i]).group(0)
+            name = re.search(r"$begin:math:display$(.*?)$end:math:display$", rule_lines[i+1]).group(0)
+            desc = rule_lines[i+2].split(":", 1)[1].strip()
 
             formatted_list.append(
-                f"[{(i//3)+1}] 위반 규칙명: `{name}`\n    우선순위: {prio}\n    설명: {desc}"
+                f"{(i//3)+1}. 위반 규칙명: {name}\n2. 설명: {desc}\n3. 우선순위: {prio}"
             )
-        except Exception:
+        except:
             continue
 
     rule_block = "\n\n".join(formatted_list)
 
-    # 코드 영역 복사
+    # 코드 블럭 추출
     code_block = "\n".join(extracted[code_start:]) if code_start else ""
 
+    # 최종 Slack 메시지
     return f"""🔎 코드 룰셋 검사 결과
 
 {rule_block}
