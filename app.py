@@ -195,7 +195,7 @@ def extract_slack_message(full_response):
     code_part = "\n".join(code_block_lines).strip()
 
     # 보장된 슬랙 메시지 포맷
-    return f"""🔎 *코드 룰셋 검사 결과*
+    return f"""
 
 {rule_part}
 
