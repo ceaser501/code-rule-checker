@@ -165,55 +165,57 @@ def remove_highlight_from_keywords(text):
     return text
 
 # Slack 메시지만 따로 뽑기 위한 헬퍼 함수
-# Slack 메시지만 따로 뽑기 위한 헬퍼 함수  // ✅ 이 함수만 교체
 def extract_slack_message(full_response):
     lines = full_response.splitlines()
-    start_idx = None
-    for i, line in enumerate(lines):
-        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"):
-            start_idx = i
-            break
 
+    # Slack 마커 찾기
+    start_idx = next((i for i, line in enumerate(lines) if "🔎 *코드 룰셋 검사 결과*" in line), None)
     if start_idx is None:
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
     extracted = lines[start_idx:]
 
-    # 룰 리스트 정리
-    rule_table_lines = []
+    # 룰 설명 구간 수집
+    rule_lines = []
     code_start = None
     for i, line in enumerate(extracted):
         if "❗" in line:
             code_start = i
             break
-        if any(key in line for key in ["*우선순위*", "*위반 규칙명*", "*설명*"]):
-            continue
+        if any(line.strip().startswith(prefix) for prefix in ["|", "----------"]):
+            continue  # 표 테이블 형태는 무시
         if line.strip():
-            rule_table_lines.append(line.strip('* '))
+            rule_lines.append(line.strip())
 
-    # 보기 좋은 형식으로 재구성
+    # 리스트 형태로 변환
     formatted_list = []
-    for i in range(0, len(rule_table_lines), 3):
+    for i in range(0, len(rule_lines), 3):
         try:
-            prio = rule_table_lines[i].split('`')[1]
-            name = rule_table_lines[i+1].split('`')[1]
-            desc = rule_table_lines[i+2].split(':', 1)[1].strip()
+            prio_line = rule_lines[i]
+            name_line = rule_lines[i+1]
+            desc_line = rule_lines[i+2]
+
+            # 추출 (가장 보편적인 경우만 대응)
+            prio = re.search(r"\[(.*?)\]", prio_line).group(0)
+            name = re.search(r"\[(.*?)\]", name_line).group(1)
+            desc = desc_line.split(":", 1)[1].strip()
+
             formatted_list.append(
                 f"[{(i//3)+1}] 위반 규칙명: `{name}`\n    우선순위: {prio}\n    설명: {desc}"
             )
-        except:
+        except Exception:
             continue
 
     rule_block = "\n\n".join(formatted_list)
 
-    # 코드블럭 붙이기
-    code_block = "\n".join(extracted[code_start:]) if code_start is not None else ""
+    # 코드 영역 복사
+    code_block = "\n".join(extracted[code_start:]) if code_start else ""
 
     return f"""🔎 코드 룰셋 검사 결과
 
-            {rule_block}
+{rule_block}
 
-            {code_block}"""
+{code_block}"""
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
