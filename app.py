@@ -170,7 +170,7 @@ def extract_slack_message(full_response):
     GPT가 응답한 전체 메시지에서 Slack 전용 포맷만 추출
     """
     lines = full_response.splitlines()
-    start_idx = next((i for i, line in enumerate(lines) if "🔎 코드 룰셋 검사 결과" in line), None)
+    start_idx = next((i for i, line in enumerate(lines) if "🔎 *코드 룰셋 검사 결과*" in line), None)
     if start_idx is None:
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
