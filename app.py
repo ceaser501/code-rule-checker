@@ -169,7 +169,7 @@ def extract_slack_message(full_response):
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"): 
+        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"):
             start_idx = i
             break
 
@@ -178,7 +178,7 @@ def extract_slack_message(full_response):
 
     extracted = lines[start_idx:]
 
-    # 룰 정보 테이블 파싱
+    # 룰 테이블 파싱
     rule_table_lines = []
     code_start = None
     for i, line in enumerate(extracted):
@@ -190,26 +190,23 @@ def extract_slack_message(full_response):
         if line.strip():
             rule_table_lines.append(line.strip('* '))
 
-    # 룰 라인들을 정리된 문자열로 재구성 (정렬된 Markdown 표 형태)
+    # 테이블 정제
     formatted_table = ["우선순위   | 위반 규칙명               | 설명",
-                      "---------- | ------------------------- | ------------------------------------------------------------"]
+                       "---------- | ------------------------- | ------------------------------------------------------------"]
     for i in range(0, len(rule_table_lines), 3):
-        parts = rule_table_lines[i].split('`')
-        if len(parts) > 1:
-            prio = parts[1]
-        else:
-            continue  # 또는 기본값 설정
-        name = rule_table_lines[i+1].split('`')[1]
-        desc = rule_table_lines[i+2].split(':')[1].strip()
-        formatted_table.append(f"{prio:<10} | {name:<25} | {desc}")
+        try:
+            prio = rule_table_lines[i].split("`")[1]
+            name = rule_table_lines[i+1].split("`")[1]
+            desc = rule_table_lines[i+2].split(":")[1].strip()
+            formatted_table.append(f"{prio:<10} | {name:<25} | {desc}")
+        except IndexError:
+            continue
 
-    markdown_block = "\n".join(formatted_table)
+    table_block = "\n".join(formatted_table)
 
-    # 나머지 코드 블럭 복사
-    code_section = "\n".join(extracted[code_start:]) if code_start else ""
-
-    # 최종 Slack 메시지
-    return f"\U0001F50D 코드 룰셋 검사 결과\n\n```\n{markdown_block}\n```\n\n{code_section}"
+    # 코드 블럭 포함해서 최종 메시지 반환
+    code_block = "\n".join(extracted[code_start:]) if code_start else ""
+    return f"\U0001F50D 코드 룰셋 검사 결과\n\n{table_block}\n\n{code_block}"
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
@@ -249,19 +246,24 @@ if col1.button("검사시작", key="button"):
             full_message = "\n\n".join(full_result)
             slack_message = extract_slack_message(full_message)
 
-            # Streamlit 출력에서 Slack 안내 이후 제거
+            # slack 메시지는 절대 Streamlit 출력에 포함하지 않도록 분리
             split_marker = "🔔 Slack 메시지용 응답도 반드시 함께 작성하세요."
 
+            # Slack 메시지 이후 부분은 제거하고 Streamlit 출력용만 남기기
             if split_marker in full_message:
                 streamlit_only_output = full_message.split(split_marker)[0].strip()
             else:
                 streamlit_only_output = full_message.strip()
 
-            send_to_slack(slack_message)
-
+            # ✅ Streamlit에선 Slack 내용 없이 출력
             if streamlit_only_output:
                 cleaned_output = remove_highlight_from_keywords(streamlit_only_output)
                 col2.markdown(cleaned_output, unsafe_allow_html=True)
+
+            # ✅ Slack은 코드블럭으로 감싸서 전송
+            if slack_message:
+                formatted_slack = f"```{slack_message}```"
+                send_to_slack(formatted_slack)
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
