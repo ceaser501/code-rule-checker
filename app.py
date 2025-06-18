@@ -249,12 +249,10 @@ if col1.button("검사시작", key="button"):
             full_message = "\n\n".join(full_result)
             slack_message = extract_slack_message(full_message)
 
-            # slack 메시지는 절대 Streamlit 출력에 포함하지 않도록 분리
-            split_marker = "🔔 Slack 메시지용 응답도 반드시 함께 작성하세요."
-
-            # Slack 메시지 이후 부분은 제거하고 Streamlit 출력용만 남기기
-            if split_marker in full_message:
-                streamlit_only_output = full_message.split(split_marker)[0].strip()
+            # Slack 메시지 시작 위치 제거
+            slack_start_index = full_message.find("🔔 Slack 메시지용 응답도 반드시 함께 작성하세요.")
+            if slack_start_index != -1:
+                streamlit_only_output = full_message[:slack_start_index].strip()
             else:
                 streamlit_only_output = full_message.strip()
 
@@ -265,8 +263,7 @@ if col1.button("검사시작", key="button"):
 
             # ✅ Slack은 코드블럭으로 감싸서 전송
             if slack_message:
-                formatted_slack = f"```\n{slack_message}\n```"
-                send_to_slack(formatted_slack)
+                send_to_slack(slack_message)
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
