@@ -249,12 +249,17 @@ if col1.button("검사시작", key="button"):
             full_message = "\n\n".join(full_result)
             slack_message = extract_slack_message(full_message)
 
-            # Slack 메시지 시작 위치 제거
+            # Slack 메시지 시작 위치 제거 (streamlit 화면 출력에서 제외)
             slack_start_index = full_message.find("🔔 Slack 메시지용 응답도 반드시 함께 작성하세요.")
             if slack_start_index != -1:
                 streamlit_only_output = full_message[:slack_start_index].strip()
             else:
-                streamlit_only_output = full_message.strip()
+                # 혹시 GPT가 마커 없이 Slack 메시지를 줄 수도 있으니 "🔎 *코드 룰셋 검사 결과*" 이후 2번째 블럭 제거
+                split_candidates = full_message.split("🔎 *코드 룰셋 검사 결과*")
+                if len(split_candidates) > 2:
+                    streamlit_only_output = "🔎 *코드 룰셋 검사 결과*" + split_candidates[1]
+                else:
+                    streamlit_only_output = full_message.strip()
 
             # ✅ Streamlit에선 Slack 내용 없이 출력
             if streamlit_only_output:
@@ -263,7 +268,8 @@ if col1.button("검사시작", key="button"):
 
             # ✅ Slack은 코드블럭으로 감싸서 전송
             if slack_message:
-                send_to_slack(slack_message)
+                formatted_slack = f"```\n{slack_message.strip()}\n```"
+                send_to_slack(formatted_slack)
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
