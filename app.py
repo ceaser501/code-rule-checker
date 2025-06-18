@@ -192,7 +192,7 @@ def extract_slack_message(full_response):
 
     # Slack 메시지 구조 보장: rule_blocks를 순차 출력
     rule_part = "\n\n".join(rule_blocks).strip()
-    code_part = "\n\n".join(code_block_lines).strip()
+    code_part = "\n".join(code_block_lines).strip()
 
     # 보장된 슬랙 메시지 포맷
     return f"""
