@@ -209,7 +209,7 @@ def extract_slack_message(full_response):
     code_section = "\n".join(extracted[code_start:]) if code_start else ""
 
     # 최종 Slack 메시지
-    return f"\U0001F50D 코드 룰셋 검사 결과\n\n```\n{markdown_block}\n```\n\n{code_section}"
+    return f"🔎 코드 룰셋 검사 결과\n\n```\n{markdown_block}\n```\n\n{code_section}"
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
@@ -265,7 +265,7 @@ if col1.button("검사시작", key="button"):
 
             # ✅ Slack은 코드블럭으로 감싸서 전송
             if slack_message:
-                formatted_slack = f"```{slack_message}```"
+                formatted_slack = f"```\n{slack_message}\n```"
                 send_to_slack(formatted_slack)
 
         if 'previous_question' not in st.session_state:
