@@ -194,7 +194,11 @@ def extract_slack_message(full_response):
     formatted_table = ["우선순위   | 위반 규칙명               | 설명",
                       "---------- | ------------------------- | ------------------------------------------------------------"]
     for i in range(0, len(rule_table_lines), 3):
-        prio = rule_table_lines[i].split('`')[1]
+        parts = rule_table_lines[i].split('`')
+        if len(parts) > 1:
+            prio = parts[1]
+        else:
+            continue  # 또는 기본값 설정
         name = rule_table_lines[i+1].split('`')[1]
         desc = rule_table_lines[i+2].split(':')[1].strip()
         formatted_table.append(f"{prio:<10} | {name:<25} | {desc}")
