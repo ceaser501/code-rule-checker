@@ -169,7 +169,7 @@ def extract_slack_message(full_response):
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"): 
+        if "🔎 **코드 검사 결과**" in line:
             start_idx = i
             break
 
@@ -177,29 +177,36 @@ def extract_slack_message(full_response):
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
     extracted = lines[start_idx:]
-
-    # 위반 규칙 요약을 한 표로 묶기
-    rule_lines = []
+    table_lines = []
     code_start = None
+
     for i, line in enumerate(extracted):
-        if "❗ *원본 코드*" in line:
+        if line.startswith("❗ **원본코드**") or line.startswith("✅ **수정코드**"):
             code_start = i
             break
-        if "1. *위반 규칙명*" in line or line.startswith("1. *우선순위*"):
-            rule_lines.append(line)
+        if line.startswith("1. **우선순위**") or line.startswith("1. *우선순위*"):
+            try:
+                priority = re.search(r"\[(.*?)\]", extracted[i]).group(1)
+                name = re.search(r"\[(.*?)\]", extracted[i+1]).group(1)
+                desc = re.search(r"\[(.*?)\]", extracted[i+2]).group(1)
+                table_lines.append(f"| [{priority}] | [{name}] | {desc} |")
+            except:
+                continue
 
-    # 테이블 구성
-    rule_table = "| 우선순위 | 위반 규칙명 | 설명 |\n|---|---|---|"
-    for i in range(len(extracted)):
-        if extracted[i].startswith("1. *우선순위*"):
-            priority = extracted[i].split("`")[1]
-            name = extracted[i+1].split("`")[1]
-            desc = extracted[i+2].split(":")[1].strip()
-            rule_table += f"\n| {priority} | {name} | {desc} |"
+    table = (
+        "🔎 *코드 룰셋 검사 결과*\n\n"
+        "| 우선순위 | 위반 규칙명 | 설명 |\n"
+        "|----------|--------------|--------|\n"
+        + "\n".join(table_lines)
+    )
 
-    # 코드 블록 이후 모두 붙이기
-    rest = "\n".join(extracted[code_start:]) if code_start else ""
-    return f"🔎 *코드 룰셋 검사 결과*\n\n{rule_table}\n\n{rest}"
+    # 코드 영역 붙이기
+    if code_start is not None:
+        rest = "\n\n" + "\n".join(extracted[code_start:])
+    else:
+        rest = ""
+
+    return table + rest
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
