@@ -119,9 +119,22 @@ def run():
             else:
                 st.write(data)
             data_st = data.to_string()
-            excel_text_chunks = get_excel_chunks(data_st)
-            vectorstore = get_vectorstore(excel_text_chunks)
-            st.session_state.conversation = get_conversation_chain(vectorstore)
+            
+            ##  1. 벡터스토어 재구축 시간
+            # •	사용자가 엑셀 업로드 할 때마다 FAISS 벡터스토어를 매번 생성합니다.
+	        # •	get_vectorstore()는 내부적으로 모든 룰 데이터를 임베딩 + 인덱싱하는데, 시간이 꽤 걸립니다.
+	        # •	비효율 포인트: 벡터스토어를 매번 만들지 않아도 되는데 재생성되고 있음.
+            #excel_text_chunks = get_excel_chunks(data_st)
+            #vectorstore = get_vectorstore(excel_text_chunks)
+            #st.session_state.conversation = get_conversation_chain(vectorstore)
+
+            # 엑셀 파일이 변경되지 않는 한, 아래 코드로 벡터스토어 재사용 가능:
+            if "vectorstore" not in st.session_state:
+                excel_text_chunks = get_excel_chunks(data_st)
+                vectorstore = get_vectorstore(excel_text_chunks)
+                st.session_state.vectorstore = vectorstore
+            else:
+                vectorstore = st.session_state.vectorstore
     else:
         col1.write("파일을 업로드 해주세요.")
 
