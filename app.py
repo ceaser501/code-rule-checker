@@ -166,52 +166,39 @@ def remove_highlight_from_keywords(text):
 
 # Slack 메시지만 따로 뽑기 위한 헬퍼 함수
 def extract_slack_message(full_response):
+    """
+    GPT가 응답한 전체 메시지에서 Slack 전용 포맷만 추출
+    """
     lines = full_response.splitlines()
-
-    # Slack 마커 찾기
-    start_idx = next((i for i, line in enumerate(lines) if "🔎 *코드 룰셋 검사 결과*" in line), None)
+    start_idx = next((i for i, line in enumerate(lines) if "🔎 코드 룰셋 검사 결과" in line), None)
     if start_idx is None:
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
     extracted = lines[start_idx:]
+    rule_blocks = []
+    code_block_lines = []
+    in_code = False
 
-    # 룰 설명 구간 수집
-    rule_lines = []
-    code_start = None
-    for i, line in enumerate(extracted):
-        if "❗" in line:
-            code_start = i
-            break
-        if line.strip().startswith("|") or line.strip().startswith("----------"):
-            continue  # 표 형태 생략
-        if line.strip():
-            rule_lines.append(line.strip())
-
-    # 리스트 포맷 구성
-    formatted_list = []
-    for i in range(0, len(rule_lines), 3):
-        try:
-            prio = re.search(r"$begin:math:display$(.*?)$end:math:display$", rule_lines[i]).group(0)
-            name = re.search(r"$begin:math:display$(.*?)$end:math:display$", rule_lines[i+1]).group(0)
-            desc = rule_lines[i+2].split(":", 1)[1].strip()
-
-            formatted_list.append(
-                f"{(i//3)+1}. 위반 규칙명: {name}\n2. 설명: {desc}\n3. 우선순위: {prio}"
-            )
-        except:
+    for line in extracted:
+        if line.strip().startswith("```java"):
+            in_code = True
+            code_block_lines.append(line)
             continue
+        if in_code:
+            code_block_lines.append(line)
+        elif line.strip():
+            rule_blocks.append(line.strip())
 
-    rule_block = "\n\n".join(formatted_list)
+    # Slack 메시지 구조 보장: rule_blocks를 순차 출력
+    rule_part = "\n".join(rule_blocks).strip()
+    code_part = "\n".join(code_block_lines).strip()
 
-    # 코드 블럭 추출
-    code_block = "\n".join(extracted[code_start:]) if code_start else ""
+    # 보장된 슬랙 메시지 포맷
+    return f"""🔎 *코드 룰셋 검사 결과*
 
-    # 최종 Slack 메시지
-    return f"""🔎 코드 룰셋 검사 결과
+{rule_part}
 
-{rule_block}
-
-{code_block}"""
+{code_part}"""
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
@@ -265,6 +252,8 @@ if col1.button("검사시작", key="button"):
 
             # ✅ Slack은 코드블럭으로 감싸서 전송
             if slack_message:
+                if not slack_message.startswith("🔎"):
+                    slack_message = f"🔎 *코드 룰셋 검사 결과*\n\n{slack_message}"
                 send_to_slack(slack_message)
 
         if 'previous_question' not in st.session_state:
