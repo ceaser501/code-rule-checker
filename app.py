@@ -165,11 +165,12 @@ def remove_highlight_from_keywords(text):
     return text
 
 # Slack 메시지만 따로 뽑기 위한 헬퍼 함수
+# Slack 메시지만 따로 뽑기 위한 헬퍼 함수  // ✅ 이 함수만 교체
 def extract_slack_message(full_response):
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"): 
+        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"):
             start_idx = i
             break
 
@@ -178,7 +179,7 @@ def extract_slack_message(full_response):
 
     extracted = lines[start_idx:]
 
-    # 룰 정보 테이블 파싱
+    # 룰 리스트 정리
     rule_table_lines = []
     code_start = None
     for i, line in enumerate(extracted):
@@ -190,26 +191,29 @@ def extract_slack_message(full_response):
         if line.strip():
             rule_table_lines.append(line.strip('* '))
 
-    # 룰 라인들을 정리된 문자열로 재구성 (정렬된 Markdown 표 형태)
-    formatted_table = ["우선순위   | 위반 규칙명               | 설명",
-                      "---------- | ------------------------- | ------------------------------------------------------------"]
+    # 보기 좋은 형식으로 재구성
+    formatted_list = []
     for i in range(0, len(rule_table_lines), 3):
-        parts = rule_table_lines[i].split('`')
-        if len(parts) > 1:
-            prio = parts[1]
-        else:
-            continue  # 또는 기본값 설정
-        name = rule_table_lines[i+1].split('`')[1]
-        desc = rule_table_lines[i+2].split(':')[1].strip()
-        formatted_table.append(f"{prio:<10} | {name:<25} | {desc}")
+        try:
+            prio = rule_table_lines[i].split('`')[1]
+            name = rule_table_lines[i+1].split('`')[1]
+            desc = rule_table_lines[i+2].split(':', 1)[1].strip()
+            formatted_list.append(
+                f"[{(i//3)+1}] 위반 규칙명: `{name}`\n    우선순위: {prio}\n    설명: {desc}"
+            )
+        except:
+            continue
 
-    markdown_block = "\n".join(formatted_table)
+    rule_block = "\n\n".join(formatted_list)
 
-    # 나머지 코드 블럭 복사
-    code_section = "\n".join(extracted[code_start:]) if code_start else ""
+    # 코드블럭 붙이기
+    code_block = "\n".join(extracted[code_start:]) if code_start is not None else ""
 
-    # 최종 Slack 메시지
-    return f"🔎 코드 룰셋 검사 결과\n\n```\n{markdown_block}\n```\n\n{code_section}"
+    return f"""🔎 코드 룰셋 검사 결과
+
+            {rule_block}
+
+            {code_block}"""
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
