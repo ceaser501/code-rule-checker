@@ -153,8 +153,15 @@ def remove_highlight_from_keywords(text):
         'System', 'String', 'Integer', 'Double', 'Boolean', 'List', 'Map', 'HashMap', 'ArrayList',
         'print', 'println', 'out', 'in', 'Math', 'Arrays'
     ]
+    # 정규식 개선: <mark>System.out</mark> 같은 패턴도 대응
     for kw in java_keywords:
-        text = re.sub(rf'<mark>{kw}</mark>', kw, text)
+        # 예약어 전체가 강조된 경우
+        text = re.sub(rf'<mark>{re.escape(kw)}</mark>', kw, text)
+        # 예약어가 마침표와 함께 강조된 경우 (예: <mark>System.out</mark>)
+        text = re.sub(rf'<mark>{re.escape(kw)}\.(\w+)</mark>', rf'{kw}.\1', text)
+        # 예약어 일부만 강조된 경우 (예: <mark>System</mark>.out.println)
+        text = re.sub(rf'<mark>{re.escape(kw)}</mark>(\.\w+)', rf'{kw}\1', text)
+        text = re.sub(rf'(\w+)\.<mark>{re.escape(kw)}</mark>', rf'\1.{kw}', text)
     return text
 
 # Slack 메시지만 따로 뽑기 위한 헬퍼 함수
