@@ -254,7 +254,7 @@ if col1.button("검사시작", key="button"):
             # ✅ Slack은 코드블럭으로 감싸서 전송
             if slack_message:
                 if not slack_message.startswith("🔎"):
-                    slack_message = f"🔎 *코드 룰셋 검사 결과*\n\n{slack_message}"
+                    slack_message = f"{slack_message}"
                 send_to_slack(slack_message)
 
         if 'previous_question' not in st.session_state:
