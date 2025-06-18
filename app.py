@@ -170,35 +170,48 @@ def extract_slack_message(full_response):
     GPT가 응답한 전체 메시지에서 Slack 전용 포맷만 추출
     """
     lines = full_response.splitlines()
-    start_idx = next((i for i, line in enumerate(lines) if "🔎 *코드 룰셋 검사 결과*" in line), None)
+    start_idx = next((i for i, line in enumerate(lines) if "🔎" in line and "코드 룰셋 검사 결과" in line), None)
     if start_idx is None:
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
     extracted = lines[start_idx:]
+
     rule_blocks = []
     code_block_lines = []
     in_code = False
+    rule_section_done = False
 
     for line in extracted:
-        if line.strip().startswith("```java"):
+        # 코드 시작
+        if line.strip().startswith("```"):
             in_code = True
-            code_block_lines.append(line)
+            rule_section_done = True
             continue
-        if in_code:
-            code_block_lines.append(line)
-        elif line.strip():
+
+        if not in_code:
             rule_blocks.append(line.strip())
+        elif in_code:
+            code_block_lines.append(line)
 
-    # Slack 메시지 구조 보장: rule_blocks를 순차 출력
+    # rule_blocks 내에서 [1]과 [2] 사이에 줄바꿈 추가
+    for i in range(len(rule_blocks) - 1, 0, -1):
+        if rule_blocks[i].startswith("[") and rule_blocks[i-1].startswith("["):
+            rule_blocks.insert(i, "")  # 줄바꿈용 공백 삽입
+
     rule_part = "\n".join(rule_blocks).strip()
-    code_part = "\n".join(code_block_lines).strip()
 
-    # 보장된 슬랙 메시지 포맷
-    return f"""🔎 *코드 룰셋 검사 결과*
+    # 코드블럭에서 ```java 제거
+    cleaned_code = []
+    for line in code_block_lines:
+        if line.strip() == "```java":
+            cleaned_code.append("```")
+        else:
+            cleaned_code.append(line)
 
-{rule_part}
+    code_part = "\n".join(cleaned_code).strip()
 
-{code_part}"""
+    # 최종 메시지
+    return f"""🔎 *코드 룰셋 검사 결과*\n\n{rule_part}\n\n{code_part}"""
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
