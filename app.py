@@ -245,31 +245,30 @@ if col1.button("검사시작", key="button"):
                 rmT = re.sub(clearer, '', message)
                 full_result.append(rmT)
 
-            # Slack 메시지 추출
+            # 전체 응답 메시지 (GPT가 준 것 그대로)
             full_message = "\n\n".join(full_result)
-            slack_message = extract_slack_message(full_message)
+            
+            # Slack 메시지 블록 추출
+            slack_marker = "🔔 Slack 메시지용 응답도 반드시 함께 작성하세요."
+            slack_index = full_message.find(slack_marker)
 
-            # Slack 메시지 시작 위치 제거 (streamlit 화면 출력에서 제외)
-            slack_start_index = full_message.find("🔔 Slack 메시지용 응답도 반드시 함께 작성하세요.")
-            if slack_start_index != -1:
-                streamlit_only_output = full_message[:slack_start_index].strip()
+            if slack_index != -1:
+                # Streamlit은 앞부분만 출력
+                streamlit_only_output = full_message[:slack_index].strip()
+                # Slack은 뒷부분만 잘라서 전송
+                slack_only_block = full_message[slack_index:].strip()
             else:
-                # 혹시 GPT가 마커 없이 Slack 메시지를 줄 수도 있으니 "🔎 *코드 룰셋 검사 결과*" 이후 2번째 블럭 제거
-                split_candidates = full_message.split("🔎 *코드 룰셋 검사 결과*")
-                if len(split_candidates) > 2:
-                    streamlit_only_output = "🔎 *코드 룰셋 검사 결과*" + split_candidates[1]
-                else:
-                    streamlit_only_output = full_message.strip()
+                streamlit_only_output = full_message.strip()
+                slack_only_block = ""  # 마커 없으면 보내지 않음
 
-            # ✅ Streamlit에선 Slack 내용 없이 출력
+            # ✅ Streamlit에는 Slack 메시지 제외된 내용만 출력
             if streamlit_only_output:
                 cleaned_output = remove_highlight_from_keywords(streamlit_only_output)
                 col2.markdown(cleaned_output, unsafe_allow_html=True)
 
-            # ✅ Slack은 코드블럭으로 감싸서 전송
-            if slack_message:
-                formatted_slack = f"```\n{slack_message.strip()}\n```"
-                send_to_slack(formatted_slack)
+            # ✅ Slack 전용 메시지는 코드블럭으로 감싸서 전송
+            if slack_only_block:
+                 send_to_slack(slack_only_block) 
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
