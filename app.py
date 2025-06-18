@@ -262,7 +262,7 @@ if col1.button("검사시작", key="button"):
 
             # ✅ Slack은 코드블럭으로 감싸서 전송
             if slack_message:
-                formatted_slack = f"```\n{slack_message}\n```"  # 줄바꿈 포함하여 prettier
+                send_to_slack(f"```{slack_message}```")
                 send_to_slack(formatted_slack)
 
         if 'previous_question' not in st.session_state:
