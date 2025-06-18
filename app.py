@@ -169,7 +169,7 @@ def extract_slack_message(full_response):
     lines = full_response.splitlines()
     start_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("🔎 *코드 룰셋 검사 결과*"): 
+        if "🔎 **코드 검사 결과**" in line:
             start_idx = i
             break
 
@@ -177,39 +177,36 @@ def extract_slack_message(full_response):
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
     extracted = lines[start_idx:]
-
-    # 룰 정보 테이블 파싱
-    rule_table_lines = []
+    table_lines = []
     code_start = None
+
     for i, line in enumerate(extracted):
-        if "❗" in line:
+        if line.startswith("❗ **원본코드**") or line.startswith("✅ **수정코드**"):
             code_start = i
             break
-        if any(key in line for key in ["*우선순위*", "*위반 규칙명*", "*설명*"]):
-            continue
-        if line.strip():
-            rule_table_lines.append(line.strip('* '))
+        if line.startswith("1. **우선순위**") or line.startswith("1. *우선순위*"):
+            try:
+                priority = re.search(r"\[(.*?)\]", extracted[i]).group(1)
+                name = re.search(r"\[(.*?)\]", extracted[i+1]).group(1)
+                desc = re.search(r"\[(.*?)\]", extracted[i+2]).group(1)
+                table_lines.append(f"| [{priority}] | [{name}] | {desc} |")
+            except:
+                continue
 
-    # 룰 라인들을 정리된 문자열로 재구성 (정렬된 Markdown 표 형태)
-    formatted_table = ["우선순위   | 위반 규칙명               | 설명",
-                      "---------- | ------------------------- | ------------------------------------------------------------"]
-    for i in range(0, len(rule_table_lines), 3):
-        parts = rule_table_lines[i].split('`')
-        if len(parts) > 1:
-            prio = parts[1]
-        else:
-            continue  # 또는 기본값 설정
-        name = rule_table_lines[i+1].split('`')[1]
-        desc = rule_table_lines[i+2].split(':')[1].strip()
-        formatted_table.append(f"{prio:<10} | {name:<25} | {desc}")
+    table = (
+        "🔎 *코드 룰셋 검사 결과*\n\n"
+        "| 우선순위 | 위반 규칙명 | 설명 |\n"
+        "|----------|--------------|--------|\n"
+        + "\n".join(table_lines)
+    )
 
-    markdown_block = "\n".join(formatted_table)
+    # 코드 영역 붙이기
+    if code_start is not None:
+        rest = "\n\n" + "\n".join(extracted[code_start:])
+    else:
+        rest = ""
 
-    # 나머지 코드 블럭 복사
-    code_section = "\n".join(extracted[code_start:]) if code_start else ""
-
-    # 최종 Slack 메시지
-    return f"🔎 코드 룰셋 검사 결과\n\n```\n{markdown_block}\n```\n\n{code_section}"
+    return table + rest
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
@@ -245,30 +242,23 @@ if col1.button("검사시작", key="button"):
                 rmT = re.sub(clearer, '', message)
                 full_result.append(rmT)
 
-            # 전체 응답 메시지 (GPT가 준 것 그대로)
+            # Slack 메시지 추출
             full_message = "\n\n".join(full_result)
-            
-            # Slack 메시지 블록 추출
-            slack_marker = "🔔 Slack 메시지용 응답도 반드시 함께 작성하세요."
-            slack_index = full_message.find(slack_marker)
+            slack_message = extract_slack_message(full_message)
 
-            if slack_index != -1:
-                # Streamlit은 앞부분만 출력
-                streamlit_only_output = full_message[:slack_index].strip()
-                # Slack은 뒷부분만 잘라서 전송
-                slack_only_block = full_message[slack_index:].strip()
+            # Streamlit 출력에서 Slack 안내 이후 제거
+            split_marker = "🔔 Slack 메시지용 응답도 반드시 함께 작성하세요."
+
+            if split_marker in full_message:
+                streamlit_only_output = full_message.split(split_marker)[0].strip()
             else:
                 streamlit_only_output = full_message.strip()
-                slack_only_block = ""  # 마커 없으면 보내지 않음
 
-            # ✅ Streamlit에는 Slack 메시지 제외된 내용만 출력
+            send_to_slack(slack_message)
+
             if streamlit_only_output:
                 cleaned_output = remove_highlight_from_keywords(streamlit_only_output)
                 col2.markdown(cleaned_output, unsafe_allow_html=True)
-
-            # ✅ Slack 전용 메시지는 코드블럭으로 감싸서 전송
-            if slack_only_block:
-                 send_to_slack(slack_only_block) 
 
         if 'previous_question' not in st.session_state:
             st.session_state.previous_question = ""
