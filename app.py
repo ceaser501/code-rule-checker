@@ -176,30 +176,9 @@ def extract_slack_message(full_response):
         return "⚠️ Slack 메시지 포맷을 찾을 수 없습니다."
 
     extracted = lines[start_idx:]
-    rule_blocks = []
-    code_block_lines = []
-    in_code = False
 
-    for line in extracted:
-        if line.strip().startswith("```java"):
-            in_code = True
-            code_block_lines.append(line)
-            continue
-        if in_code:
-            code_block_lines.append(line)
-        elif line.strip():
-            rule_blocks.append(line.strip())
-
-    # Slack 메시지 구조 보장: rule_blocks를 순차 출력
-    rule_part = "\n\n".join(rule_blocks).strip()
-    code_part = "\n".join(code_block_lines).strip()
-
-    # 보장된 슬랙 메시지 포맷
-    return f"""
-
-{rule_part}
-
-{code_part}"""
+    # Slack용 메시지는 표 형식이므로, 전체 블록을 그대로 사용
+    return "\n".join(extracted).strip()
 
 # Slack 알림 전송 함수
 def send_to_slack(message):
