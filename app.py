@@ -55,7 +55,7 @@ st.markdown(
 st.text("\n")
 
 # Title - Sub Title
-st.markdown("<h1 style='text-align: center; color: black; padding-top: 40px;'>ChatGPT Code Rule Checker (using GPT-4o)</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: black; padding-top: 40px;'>ChatGPT-4o Code Rule Checker</h1>", unsafe_allow_html=True)
 st.markdown(
     "<h5 style='text-align: center; color: gray;'>Master of Computer Software Engineering, Yonsei University</h5>"
     "<h5 style='text-align: center; color: gray;'>Taesu Kim (2024451104)</h5>",
