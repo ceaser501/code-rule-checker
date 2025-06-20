@@ -1,7 +1,7 @@
 import streamlit as st
 import openai
 import pandas as pd
-import os  # 환경변수 사용을 위해 필요
+import os 
 import sys, re
 import requests
 
@@ -199,7 +199,7 @@ if col1.button("검사시작", key="button"):
         for line in lines:
             line_all += line
 
-        with open('prompt/userQuery', 'r') as f:
+        with open('prompt/streamlit_prompt', 'r') as f:
             lines = f.readlines()
             user_query = " ".join(line.strip() for line in lines)
 
