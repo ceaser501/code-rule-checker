@@ -141,11 +141,16 @@ user_input = col1.text_area("Please enter your text here", height=600)
 # 설명 : 사용자가 입력한 소스코드를 라인단위로 읽어 string 연산 한 결과를 가져다가, 위에서 구현한 대화체인에게 질의함
 #       질의한 결과를 st.session_state.displayed_chat_history에 append 함
 def handle_userinput(check_datas):
+    # 이전 대화 내용 초기화
+    st.session_state.chat_history = []  # ✅ 추가
+    st.session_state.displayed_chat_history = []  # 이건 이미 있었음
+
+    # 새 대화 실행
     response = st.session_state.conversation({'question': check_datas})
     st.session_state.chat_history = response['chat_history']
-    st.session_state.displayed_chat_history = []
+
     for i, message in enumerate(st.session_state.chat_history):
-        if i % 2 != 0:
+        if i % 2 != 0 and message.content not in st.session_state.displayed_chat_history:
             st.session_state.displayed_chat_history.append(message.content)
 
 # 예약어 강조 제거 함수
@@ -192,12 +197,11 @@ def send_to_slack(message):
 
 if col1.button("검사시작", key="button"):
     with st.spinner("검사 중입니다..."):
+        st.session_state.displayed_chat_history = [] ## 초기화
         check_data = user_input
-        check_datas = ''
-        line_all = ''
+        
         lines = check_data.splitlines()
-        for line in lines:
-            line_all += line
+        line_all = "\n".join(lines)
 
         with open('prompt/streamlit_prompt', 'r') as f:
             lines = f.readlines()
